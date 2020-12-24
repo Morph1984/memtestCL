@@ -34,7 +34,7 @@
 #ifdef OSX
 inline size_t strnlen(const char* s,size_t maxlen) {
     size_t i;
-    for (i=0;i<maxlen && s[i];i++);
+    for (i=0;i<maxlen && s[i];++i);
     return i;
 }
 #endif
@@ -44,15 +44,15 @@ bool validateNumeric(const char* str) { //{{{
     // Assumes number will not be larger than 10 digits
     if ((idlen=strnlen(str,11))==11)
         return false;
-    for (size_t i = 0; i < idlen; i++) {
+    for (size_t i = 0; i < idlen; ++i) {
         if (!isdigit(str[i])) return false;
     }
     return true;
 } //}}}
 
-int getint_range(const char* prompt,const int min,const int max)
+s32 getint_range(const char* prompt,const s32 min,const s32 max)
 { //{{{
-    int sel, scanf_rv;
+    s32 sel, scanf_rv;
     if (!isatty(fileno(stdout))) {
         return min;
     }
@@ -96,7 +96,7 @@ void print_licensing(void) { //{{{
 } //}}}
 
 
-void initialize_CL(cl_platform_id &plat,cl_context& ctx,cl_device_id& dev,int& device_idx_selected,int& platform_idx_selected) { //{{{
+void initialize_CL(cl_platform_id &plat,cl_context& ctx,cl_device_id& dev,s32& device_idx_selected,s32& platform_idx_selected) { //{{{
     // Set up CL
     cl_platform_id platforms[16];
     cl_uint num_platforms;
@@ -107,7 +107,7 @@ void initialize_CL(cl_platform_id &plat,cl_context& ctx,cl_device_id& dev,int& d
     }
     if (platform_idx_selected == -1 && num_platforms == 1) platform_idx_selected = 0;
     printf ("Available OpenCL platforms:\n");
-    for (int i = 0; i < (int) num_platforms; i++) {
+    for (s32 i = 0; i < (s32) num_platforms; ++i) {
         char platname[256];
         size_t namesize;
         clGetPlatformInfo(platforms[i],CL_PLATFORM_NAME,256,platname,&namesize);
@@ -119,7 +119,7 @@ void initialize_CL(cl_platform_id &plat,cl_context& ctx,cl_device_id& dev,int& d
         platform_idx_selected = getint_range("Please select a platform",0,num_platforms-1);
 
     cl_device_id devids[32];
-    uint num_gpu = 0, num_cpu = 0, num_accel = 0, num_devices = 0;
+    u32 num_gpu = 0, num_cpu = 0, num_accel = 0, num_devices = 0;
     clGetDeviceIDs(platforms[platform_idx_selected],CL_DEVICE_TYPE_GPU,32,devids,&num_gpu);
     clGetDeviceIDs(platforms[platform_idx_selected],CL_DEVICE_TYPE_ACCELERATOR,32-num_gpu,devids+num_gpu,&num_accel);
     clGetDeviceIDs(platforms[platform_idx_selected],CL_DEVICE_TYPE_CPU,32-num_gpu-num_accel,devids+num_gpu+num_accel,&num_cpu);
@@ -132,7 +132,7 @@ void initialize_CL(cl_platform_id &plat,cl_context& ctx,cl_device_id& dev,int& d
 
     if (device_idx_selected == -1 && num_devices == 1) device_idx_selected = 0;
     printf ("Available OpenCL devices on selected platform:\n");
-    for (int i = 0; i < (int) num_devices;i++) {
+    for (s32 i = 0; i < (s32) num_devices;++i) {
         char devname[256];
         size_t namesize;
         clGetDeviceInfo(devids[i],CL_DEVICE_NAME,256,devname,&namesize);
@@ -144,7 +144,7 @@ void initialize_CL(cl_platform_id &plat,cl_context& ctx,cl_device_id& dev,int& d
     if (device_idx_selected < 0)
         device_idx_selected = getint_range("Please select a device",0,num_devices-1);
     // Sanity check device ID
-    if (device_idx_selected >= (int) num_devices) {
+    if (device_idx_selected >= (s32) num_devices) {
         printf("Error: Specified invalid device index (%d); %d OpenCL devices present on selected platform, numbered from zero\n",device_idx_selected,num_devices);
         exit(2);
     }
@@ -161,15 +161,15 @@ void initialize_CL(cl_platform_id &plat,cl_context& ctx,cl_device_id& dev,int& d
     }
 } //}}}
 
-int main(int argc,const char** argv) {
-    uint megsToTest=128;
-    uint maxIters=50;
-    int gpuID=-1;
-    int platID=-1;
-    int showLicense = 0;
-    int ramclock=-1,coreclock=-1;
-    int commAuthorized=-1;
-    int commBanned=0;
+s32 main(s32 argc,const char** argv) {
+    u32 megsToTest=128;
+    u32 maxIters=50;
+    s32 gpuID=-1;
+    s32 platID=-1;
+    s32 showLicense = 0;
+    s32 ramclock=-1,coreclock=-1;
+    s32 commAuthorized=-1;
+    s32 commBanned=0;
     
     print_usage(); 
     
@@ -251,18 +251,18 @@ int main(int argc,const char** argv) {
         printf("\tEstimated bandwidth %.02f MB/s\n\n",bandwidth);
     }
 
-    uint accumulatedErrors = 0,iterErrors;
-    uint errorCounts[15];
-    unsigned short iterErrorCounts[13];
-    memset(errorCounts,0,15*sizeof(uint));
-    memset(iterErrorCounts,0,13*sizeof(unsigned short));
+    u32 accumulatedErrors = 0,iterErrors;
+    u32 errorCounts[15];
+    u16 iterErrorCounts[13];
+    memset(errorCounts,0,15*sizeof(u32));
+    memset(iterErrorCounts,0,13*sizeof(u16));
    
-    unsigned int start,end;
-    uint iter;
+    u32 start,end;
+    u32 iter;
     const char* test;
 	bool status;
     bool thisIterFailed;
-    int itersfailed = 0;
+    s32 itersfailed = 0;
     const char *testnames[] = {"Moving inversions (ones and zeros)",
                                "Memtest86 walking 8-bit",
                                "True walking zeros (8-bit)",
@@ -280,7 +280,7 @@ int main(int argc,const char** argv) {
     for (iter = 0; iter < maxIters ; iter++) {  //{{{
         thisIterFailed = false;
         printf("Test iteration %u on %d MiB of memory on device %d (%s): %u errors so far\n",iter+1,tester.size(),gpuID,devname,accumulatedErrors);
-        uint errorCount;
+        u32 errorCount;
         
         // Moving inversions, 1's and 0's {{{
         errorCount = 0;
@@ -318,7 +318,7 @@ int main(int argc,const char** argv) {
         errorCount = 0;
         test = "Memtest86 Walking 8-bit";
         start=getTimeMilliseconds();
-        for (uint shift=0;shift<8;shift++){
+        for (u32 shift=0;shift<8;shift++){
             status = tester.gpuWalking8BitM86(iterErrors,shift);
             if (!status) {
                 printf("Could not execute test %s; quitting\n",test);
@@ -337,7 +337,7 @@ int main(int argc,const char** argv) {
         errorCount = 0;
         test = "True Walking zeros (8-bit)";
         start=getTimeMilliseconds();
-        for (uint shift=0;shift<8;shift++){
+        for (u32 shift=0;shift<8;shift++){
             status = tester.gpuWalking8Bit(iterErrors,false,shift);
             if (!status) {
                 printf("Could not execute test %s; quitting\n",test);
@@ -356,7 +356,7 @@ int main(int argc,const char** argv) {
         errorCount = 0;
         test = "True Walking ones (8-bit)";
         start=getTimeMilliseconds();
-        for (uint shift=0;shift<8;shift++){
+        for (u32 shift=0;shift<8;shift++){
             status = tester.gpuWalking8Bit(iterErrors,true,shift);
             if (!status) {
                 printf("Could not execute test %s; quitting\n",test);
@@ -375,7 +375,7 @@ int main(int argc,const char** argv) {
         errorCount = 0;
         test ="Memtest86 Walking zeros (32-bit)";
         start=getTimeMilliseconds();
-        for (uint shift=0;shift<32;shift++){
+        for (u32 shift=0;shift<32;shift++){
             status = tester.gpuWalking32Bit(iterErrors,false,shift);
             if (!status) {
                 printf("Could not execute test %s; quitting\n",test);
@@ -394,7 +394,7 @@ int main(int argc,const char** argv) {
         errorCount = 0;
         test ="Memtest86 Walking ones (32-bit)";
         start=getTimeMilliseconds();
-        for (uint shift=0;shift<32;shift++){
+        for (u32 shift=0;shift<32;shift++){
             status = tester.gpuWalking32Bit(iterErrors,true,shift);
             if (!status) {
                 printf("Could not execute test %s; quitting\n",test);
@@ -429,7 +429,7 @@ int main(int argc,const char** argv) {
         errorCount = 0;
         test ="Memtest86 Modulo-20";
         start=getTimeMilliseconds();
-        for (uint shift=0;shift<20;shift++){
+        for (u32 shift=0;shift<20;shift++){
             status = tester.gpuModuloX(iterErrors,shift,rand(),20,2);
             if (!status) {
                 printf("Could not execute test %s; quitting\n",test);
@@ -520,7 +520,7 @@ int main(int argc,const char** argv) {
         printf("Test summary:\n");
         printf("-----------------------------------------\n");
         printf("%u iterations over %u MiB of memory on device %s\n",iter,tester.size(),devname);
-        for (int i = 0; i < 13; i++) {
+        for (s32 i = 0; i < 13; ++i) {
             printf("%40s: %d failed iterations\n",testnames[i],iterErrorCounts[i]);
 	    printf("                                         (%d total incorrect bits)\n",errorCounts[i]);
         }
@@ -529,7 +529,7 @@ int main(int argc,const char** argv) {
         else
             printf("Final error count: 0 errors\n");
         if (isatty(fileno(stdout))) {
-            int i = 0;
+            s32 i = 0;
             printf("\nPress <enter> to quit.\n");
             i = getchar();
         }
